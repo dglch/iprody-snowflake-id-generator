@@ -7,13 +7,11 @@ import java.util.UUID
 
 @RestController("/v1")
 class SnowflakeController(private val generator: Generator) {
-
-	private val generatorId: String = "Generator-${UUID.randomUUID()}"
 	private val log = LoggerFactory.getLogger(SnowflakeController::class.java)
 
 	@GetMapping("/next-id")
 	suspend fun generate(): Long {
-		log.info("Controller instance: $generatorId")
+		log.info("Running in pod: {}", System.getenv("HOSTNAME"));
 		return generator.nextId()
 	}
 }
