@@ -1,0 +1,74 @@
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  name: snowflake-id-replicaset
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: snowflake-id
+  template:
+    metadata:
+      labels:
+        app: snowflake-id
+    spec:
+      initContainers:
+        - name: generate-worked-id
+          image: busybox
+          command: ["sh", "-c", "echo $((1 + RANDOM % 31)) > /worked-id/id.txt"]
+          volumeMounts:
+            - name: worked-id-volume
+              mountPath: /worked-id
+      containers:
+        - name: snowflake-id
+          image: snowflake-id-app:stable
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          env:
+            - name: APPLICATION_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: snowflake-id-config
+                  key: APPLICATION_NAME
+            - name: STARTING_EPOCH
+              valueFrom:
+                configMapKeyRef:
+                  name: snowflake-id-config
+                  key: STARTING_EPOCH
+            - name: DATACENTER_ID
+              valueFrom:
+                configMapKeyRef:
+                  name: snowflake-id-config
+                  key: DATACENTER_ID
+          volumeMounts:
+            - name: snowflake-config-volume
+              mountPath: /config
+              readOnly: true
+            - name: worked-id-volume
+              mountPath: /worked-id
+          livenessProbe:
+            httpGet:
+              path: /management/health/liveness
+              port: 8080
+            initialDelaySeconds: 60
+            timeoutSeconds: 2
+            periodSeconds: 10
+            failureThreshold: 3
+
+          readinessProbe:
+            httpGet:
+              path: /management/health/readiness
+              port: 8080
+            initialDelaySeconds: 40
+            timeoutSeconds: 2
+            failureThreshold: 3
+            successThreshold: 1
+            periodSeconds: 5
+      volumes:
+        - name: snowflake-config-volume
+          configMap:
+            name: snowflake-id-config
+        - name: worked-id-volume
+          emptyDir: {}

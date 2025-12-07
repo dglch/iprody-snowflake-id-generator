@@ -11,6 +11,7 @@ class SnowflakeController(private val generator: Generator) {
 
 	@GetMapping("/next-id")
 	suspend fun generate(): Long {
+		log.info(System.getenv("WORKED_ID"));
 		log.info("Running in pod: {}", System.getenv("HOSTNAME"));
 		return generator.nextId()
 	}
