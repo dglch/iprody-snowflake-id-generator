@@ -18,4 +18,4 @@ USER appuser
 
 COPY --chown=appuser:appuser --from=builder /app/build/libs/*-SNAPSHOT.jar app.jar
 
-ENTRYPOINT ["java", "-jar", "app.jar"]
+ENTRYPOINT ["sh", "-c", "export WORKED_ID=$(cat /worked-id/id.txt 2>/dev/null || echo 1) && exec java -jar /app/app.jar"]
