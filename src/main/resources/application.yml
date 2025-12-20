@@ -1,11 +1,19 @@
 spring:
   application:
-    name: "Snowflake ID Generator"
+    name: ${APPLICATION_NAME}
+
+  datasource:
+    url: jdbc:postgresql://${DATASOURCE_HOST}:${DATASOURCE_PORT}/${DATASOURCE_NAME}
+
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:schema.sql
 
 snowflake-settings:
-  starting-epoch: 946684800
-  datacenter-id: 1
-  worked-id: 1
+  starting-epoch: ${STARTING_EPOCH}
+  datacenter-id: ${DATACENTER_ID}
+  worked-id: ${WORKER_ID}
 
 management:
   endpoints:
