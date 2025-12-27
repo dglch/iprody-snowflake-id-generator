@@ -13,6 +13,11 @@ spec:
       labels:
         app: fluentd
     spec:
+      tolerations:
+        - key: "type"
+          operator: "Equal"
+          value: "stage"
+          effect: "NoSchedule"
       affinity:
         nodeAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
@@ -30,6 +35,8 @@ spec:
                     operator: Exists
       containers:
         - name: fluentd
+          securityContext:
+            runAsUser: 0
           image: fluent/fluentd:edge-debian
           resources:
             requests:
@@ -47,6 +54,9 @@ spec:
             - name: fluentd-config
               mountPath: /fluentd/etc/fluent.conf
               subPath: fluent.conf
+            - name: dockercontainerlogdirectory
+              mountPath: /var/lib/docker/containers
+              readOnly: true
       volumes:
         - name: varlog
           hostPath:
@@ -57,3 +67,6 @@ spec:
         - name: fluentd-config
           configMap:
             name: fluentd-config
+        - name: dockercontainerlogdirectory
+          hostPath:
+            path: /var/lib/docker/containers
