@@ -1,0 +1,107 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: snowflake-id-deployment
+  annotations:
+    kubernetes.io/change-cause: "Update to 0.1.0"
+spec:
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 25%
+      maxSurge: 25%
+  replicas: 1
+  selector:
+    matchLabels:
+      app: snowflake-id
+  template:
+    metadata:
+      labels:
+        app: snowflake-id
+    spec:
+      containers:
+        - name: snowflake-id
+          image: snowflake-id-app:stable
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "256Mi"
+            limits:
+              cpu: "1000m"
+              memory: "512Mi"
+          env:
+            - name: APPLICATION_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: snowflake-id-config
+                  key: APPLICATION_NAME
+            - name: STARTING_EPOCH
+              valueFrom:
+                configMapKeyRef:
+                  name: snowflake-id-config
+                  key: STARTING_EPOCH
+            - name: DATACENTER_ID
+              valueFrom:
+                configMapKeyRef:
+                  name: snowflake-id-config
+                  key: DATACENTER_ID
+            - name: WORKER_ID
+              valueFrom:
+                configMapKeyRef:
+                  name: snowflake-id-config
+                  key: WORKER_ID
+            - name: DATASOURCE_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: postgres-config
+                  key: DEFAULT_DB_HOST
+            - name: DATASOURCE_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: postgres-config
+                  key: DB_PORT
+            - name: DATASOURCE_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: postgres-config
+                  key: DB_NAME
+            - name: SPRING_DATASOURCE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secrets
+                  key: POSTGRES_USER
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secrets
+                  key: POSTGRES_PASSWORD
+          volumeMounts:
+            - name: snowflake-config-volume
+              mountPath: /config
+              readOnly: true
+          livenessProbe:
+            httpGet:
+              path: /management/health/liveness
+              port: 8080
+            initialDelaySeconds: 60
+            timeoutSeconds: 2
+            periodSeconds: 10
+            failureThreshold: 3
+
+          readinessProbe:
+            httpGet:
+              path: /management/health/readiness
+              port: 8080
+            initialDelaySeconds: 40
+            timeoutSeconds: 2
+            failureThreshold: 3
+            successThreshold: 1
+            periodSeconds: 5
+      volumes:
+        - name: snowflake-config-volume
+          configMap:
+            name: snowflake-id-config
