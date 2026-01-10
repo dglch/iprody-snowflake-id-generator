@@ -1,0 +1,36 @@
+replicaCount: 1
+
+image:
+  repository: snowflake-id-app
+  tag: stable
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 8080
+  targetPort: 8080
+
+autoscaling:
+  enabled: true
+  cpu:
+    averageUtilization: 70
+  memory:
+    averageValue: 400Mi
+
+resources:
+  requests:
+    cpu: 500m
+    memory: 256Mi
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+
+ingress:
+  enabled: true
+  className: contour
+  host: snowflake.dev.local
+  tls: false
+
+db:
+  meta:
+    name: postgres

@@ -1,0 +1,104 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Chart.Name }}
+  labels:
+    {{- include "snowflake.labels" . | nindent 4 }}
+  annotations:
+    kubernetes.io/change-cause: "Helm upgrade {{ .Chart.AppVersion }}"
+spec:
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 25%
+      maxSurge: 25%
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ .Chart.Name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Chart.Name }}
+    spec:
+      containers:
+        - name: {{ .Chart.Name }}
+          image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.service.port }}
+              protocol: TCP
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          env:
+            - name: APPLICATION_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ .Chart.Name }}-config
+                  key: APPLICATION_NAME
+            - name: STARTING_EPOCH
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ .Chart.Name }}-config
+                  key: STARTING_EPOCH
+            - name: DATACENTER_ID
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ .Chart.Name }}-config
+                  key: DATACENTER_ID
+            - name: WORKER_ID
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ .Chart.Name }}-config
+                  key: WORKER_ID
+            - name: DATASOURCE_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ .Values.db.meta.name }}-config
+                  key: DEFAULT_DB_HOST
+            - name: DATASOURCE_PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ .Values.db.meta.name }}-config
+                  key: DB_PORT
+            - name: DATASOURCE_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ .Values.db.meta.name }}-config
+                  key: DB_NAME
+            - name: SPRING_DATASOURCE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.db.meta.name }}-secrets
+                  key: POSTGRES_USER
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.db.meta.name }}-secrets
+                  key: POSTGRES_PASSWORD
+          volumeMounts:
+            - name: snowflake-config-volume
+              mountPath: /config
+              readOnly: true
+          livenessProbe:
+            httpGet:
+              path: /management/health/liveness
+              port: {{ .Values.service.port }}
+            initialDelaySeconds: 20
+            timeoutSeconds: 2
+            periodSeconds: 10
+            failureThreshold: 3
+
+          readinessProbe:
+            httpGet:
+              path: /management/health/readiness
+              port: {{ .Values.service.port }}
+            initialDelaySeconds: 10
+            timeoutSeconds: 2
+            failureThreshold: 3
+            successThreshold: 1
+            periodSeconds: 5
+      volumes:
+        - name: snowflake-config-volume
+          configMap:
+            name: {{ .Chart.Name }}-config

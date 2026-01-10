@@ -1,0 +1,12 @@
+image:
+  repository: postgres
+  tag: 16
+  pullPolicy: IfNotPresent
+
+postgres:
+  db:
+    name: snowflake_db
+    host: postgres-0.postgres
+    port: 5432
+    user: cG9zdGdyZXM=
+    password: cG9zdGdyZXM=
