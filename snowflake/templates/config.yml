@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Chart.Name }}-config
+data:
+  APPLICATION_NAME: "Snowflake-generator"
+  STARTING_EPOCH: "946684800"
+  DATACENTER_ID: "3"
+  WORKER_ID: "5"
